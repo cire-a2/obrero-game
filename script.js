@@ -47,7 +47,7 @@ function create() {
 
     // ⬇ Generar ladrillos cada segundo
     this.time.addEvent({
-        delay: 1000,
+        delay: 1500,
         callback: spawnBrick,
         callbackScope: this,
         loop: true
@@ -65,7 +65,7 @@ function spawnBrick() {
         this.tweens.add({
             targets: brick,
             y: targetRow * TILE_SIZE,
-            duration: 500, 
+            duration: 700, 
             ease: 'Linear',
             onComplete: () => {
                 bricksMatrix[targetRow][col] = brick; 
