@@ -6,7 +6,6 @@ const GAME_HEIGHT = GRID_SIZE * TILE_SIZE;
 let player;
 let bricksMatrix = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null)); // Matriz de ladrillos
 let cursors;
-let gravityEnabled = true; // Controla la gravedad del obrero
 
 const config = {
     type: Phaser.AUTO,
@@ -14,7 +13,7 @@ const config = {
     height: GAME_HEIGHT,
     physics: {
         default: 'arcade',
-        arcade: { gravity: { y: 0 }, debug: true } // Activamos debug para ver colisiones
+        arcade: { gravity: { y: 0 }, debug: true }
     },
     scene: {
         preload: preload,
@@ -26,18 +25,17 @@ const config = {
 const game = new Phaser.Game(config);
 
 function preload() {
-    console.log("Cargando assets..."); // Verificar si Phaser llega aquí
     this.load.image('background', 'assets/background.png'); 
     this.load.image('player', 'assets/worker.png'); 
     this.load.image('brick', 'assets/brick.png'); 
 }
 
 function create() {
-    console.log("Juego cargado"); // Confirmar que se ejecuta `create()`
-    
+    console.log("Juego cargado"); 
+
     // 🛠 Arreglamos el fondo
     let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
-    bg.setDisplaySize(GAME_WIDTH, GAME_HEIGHT); // Ajuste al tamaño del juego
+    bg.setDisplaySize(GAME_WIDTH, GAME_HEIGHT); 
 
     // 🏗 Creación del jugador
     player = this.physics.add.sprite(5 * TILE_SIZE, 9 * TILE_SIZE, 'player');
@@ -60,17 +58,17 @@ function spawnBrick() {
     let col = Phaser.Math.Between(0, GRID_SIZE - 1); // Columna aleatoria
     let targetRow = findLowestEmptyRow(col); // Encuentra la fila más baja disponible
 
-    if (targetRow !== -1) { // Si hay espacio
-        let brick = this.physics.add.sprite(col * TILE_SIZE, -TILE_SIZE, 'brick'); // Aparece arriba y cae
+    if (targetRow !== -1) { 
+        let brick = this.physics.add.sprite(col * TILE_SIZE, -TILE_SIZE, 'brick'); 
         brick.setScale(TILE_SIZE / brick.width);
 
         this.tweens.add({
             targets: brick,
             y: targetRow * TILE_SIZE,
-            duration: 500, // Tiempo de caída
+            duration: 500, 
             ease: 'Linear',
             onComplete: () => {
-                bricksMatrix[targetRow][col] = brick; // Se guarda en la matriz al aterrizar
+                bricksMatrix[targetRow][col] = brick; 
                 console.log(`Ladrillo aterrizó en fila ${targetRow}, columna ${col}`);
             }
         });
@@ -84,15 +82,44 @@ function findLowestEmptyRow(col) {
     return -1; // Columna llena
 }
 
-function update() {
-    if (Phaser.Input.Keyboard.JustDown(cursors.left)) {
-        console.log("Jugador se movió a la izquierda");
-    } else if (Phaser.Input.Keyboard.JustDown(cursors.right)) {
-        console.log("Jugador se movió a la derecha");
+// 🚀 Función para mover al worker
+function movePlayer(direction) {
+    let currentCol = Math.round(player.x / TILE_SIZE);
+    let newCol = currentCol + direction;
+    let currentRow = Math.round(player.y / TILE_SIZE);
+
+    if (newCol >= 0 && newCol < GRID_SIZE) {
+        if (bricksMatrix[currentRow][newCol]) { 
+            if (currentRow > 0 && !bricksMatrix[currentRow - 1][newCol]) {
+                // Puede subir un ladrillo
+                player.x = newCol * TILE_SIZE;
+                player.y = (currentRow - 1) * TILE_SIZE;
+            }
+        } else {
+            // Movimiento normal
+            player.x = newCol * TILE_SIZE;
+        }
     }
 }
 
+// ⬇ Aplica gravedad al worker
+function applyGravity() {
+    let col = Math.round(player.x / TILE_SIZE);
+    let row = Math.round(player.y / TILE_SIZE);
 
+    if (row < GRID_SIZE - 1 && !bricksMatrix[row + 1][col]) {
+        player.y += TILE_SIZE; // Cae una casilla si no hay ladrillo debajo
+    }
+}
 
+function update() {
+    if (Phaser.Input.Keyboard.JustDown(cursors.left)) {
+        console.log("Jugador se movió a la izquierda");
+        movePlayer(-1);
+    } else if (Phaser.Input.Keyboard.JustDown(cursors.right)) {
+        console.log("Jugador se movió a la derecha");
+        movePlayer(1);
+    }
 
-
+    applyGravity(); // Aplicamos la gravedad para que el worker caiga
+}
