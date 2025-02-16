@@ -32,9 +32,7 @@ function preload() {
 
 function create() {
     // Fondo ajustado al tamaño de la cuadrícula
-    let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
-    bg.displayWidth = GAME_WIDTH;
-    bg.displayHeight = GAME_HEIGHT;
+    this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'background').setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
 
     // Jugador
     player = this.physics.add.sprite(5 * TILE_SIZE, 9 * TILE_SIZE, 'player');
@@ -58,7 +56,7 @@ function spawnBrick() {
     let row = findLowestEmptyRow(col); // Encuentra la fila más baja disponible
 
     if (row !== -1) { // Si hay espacio
-        let brick = this.add.image(col * TILE_SIZE, row * TILE_SIZE, 'brick');
+        let brick = this.add.sprite(col * TILE_SIZE, row * TILE_SIZE, 'brick'); // Usa sprite en lugar de image
         brick.setScale(TILE_SIZE / brick.width);
         bricksMatrix[row][col] = brick; // Lo guardamos en la matriz
     }
@@ -83,5 +81,18 @@ function movePlayer(direction) {
                 player.y = (newRow - 1) * TILE_SIZE;
             }
         } else {
-   
+            // Movimiento normal
+            player.x = newCol * TILE_SIZE;
+        }
+    }
+}
+
+function update() {
+    if (Phaser.Input.Keyboard.JustDown(cursors.left)) {
+        movePlayer(-1);
+    } else if (Phaser.Input.Keyboard.JustDown(cursors.right)) {
+        movePlayer(1);
+    }
+}
+
 
