@@ -4,7 +4,8 @@ const GAME_WIDTH = GRID_SIZE * TILE_SIZE;
 const GAME_HEIGHT = GRID_SIZE * TILE_SIZE;
 
 let player;
-let bricks;
+let bricksMatrix = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null)); // Matriz de ladrillos
+let cursors;
 
 const config = {
     type: Phaser.AUTO,
@@ -35,29 +36,13 @@ function create() {
     bg.displayWidth = GAME_WIDTH;
     bg.displayHeight = GAME_HEIGHT;
 
-    // Grupo de ladrillos
-    bricks = this.physics.add.group();
-
-    // Jugador centrado en la cuadrícula
+    // Jugador
     player = this.physics.add.sprite(5 * TILE_SIZE, 9 * TILE_SIZE, 'player');
-    player.setScale(TILE_SIZE / player.width); // Ajusta su tamaño a una casilla
+    player.setScale(TILE_SIZE / player.width);
+    player.setCollideWorldBounds(true);
 
-    // Configurar teclas
-    this.input.keyboard.on('keydown-LEFT', () => {
-        if (player.x > 0) player.x -= TILE_SIZE;
-    });
-
-    this.input.keyboard.on('keydown-RIGHT', () => {
-        if (player.x < (GRID_SIZE - 1) * TILE_SIZE) player.x += TILE_SIZE;
-    });
-
-    this.input.keyboard.on('keydown-UP', () => {
-        if (player.y > 0) player.y -= TILE_SIZE;
-    });
-
-    this.input.keyboard.on('keydown-DOWN', () => {
-        if (player.y < (GRID_SIZE - 1) * TILE_SIZE) player.y += TILE_SIZE;
-    });
+    // Controles (Izquierda y Derecha)
+    cursors = this.input.keyboard.createCursorKeys();
 
     // Generar ladrillos cada segundo
     this.time.addEvent({
@@ -66,25 +51,37 @@ function create() {
         callbackScope: this,
         loop: true
     });
-
-    // Colisiones
-    this.physics.add.collider(player, bricks, gameOver, null, this);
 }
 
 function spawnBrick() {
     let col = Phaser.Math.Between(0, GRID_SIZE - 1); // Columna aleatoria
-    let brick = bricks.create(col * TILE_SIZE, 0, 'brick'); // Cae desde arriba
-    brick.setScale(TILE_SIZE / brick.width); // Ajustar tamaño a 1 casilla
-    brick.setVelocityY(100); // Velocidad de caída
+    let row = findLowestEmptyRow(col); // Encuentra la fila más baja disponible
+
+    if (row !== -1) { // Si hay espacio
+        let brick = this.add.image(col * TILE_SIZE, row * TILE_SIZE, 'brick');
+        brick.setScale(TILE_SIZE / brick.width);
+        bricksMatrix[row][col] = brick; // Lo guardamos en la matriz
+    }
 }
 
-function gameOver() {
-    alert("¡Perdiste! Un ladrillo te golpeó.");
-    location.reload(); // Reiniciar el juego
+function findLowestEmptyRow(col) {
+    for (let row = GRID_SIZE - 1; row >= 0; row--) {
+        if (!bricksMatrix[row][col]) return row;
+    }
+    return -1; // Columna llena
 }
 
-function update() {
-    // Evita que el jugador salga de los límites
-    player.x = Phaser.Math.Clamp(player.x, 0, (GRID_SIZE - 1) * TILE_SIZE);
-    player.y = Phaser.Math.Clamp(player.y, 0, (GRID_SIZE - 1) * TILE_SIZE);
-}
+function movePlayer(direction) {
+    let newCol = (player.x / TILE_SIZE) + direction;
+    let newRow = player.y / TILE_SIZE;
+
+    if (newCol >= 0 && newCol < GRID_SIZE) {
+        if (bricksMatrix[newRow][newCol]) { // Hay un ladrillo
+            if (newRow > 0 && !bricksMatrix[newRow - 1][newCol]) {
+                // Puede saltar un ladrillo
+                player.x = newCol * TILE_SIZE;
+                player.y = (newRow - 1) * TILE_SIZE;
+            }
+        } else {
+   
+
