@@ -1,15 +1,26 @@
+const GRID_SIZE = 10;  // Tamaño del mapa (10x10)
+const TILE_SIZE = 40;  // Tamaño de cada casilla en píxeles
+const GAME_WIDTH = GRID_SIZE * TILE_SIZE;
+const GAME_HEIGHT = GRID_SIZE * TILE_SIZE;
+
+let player;
+let bricks;
+
 const config = {
     type: Phaser.AUTO,
-    width: 400,
-    height: 600,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
     physics: {
         default: 'arcade',
-        arcade: { gravity: { y: 500 }, debug: false }
+        arcade: { gravity: { y: 0 }, debug: false }
     },
-    scene: { preload, create, update }
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
 };
 
-let player, cursors, bricks;
 const game = new Phaser.Game(config);
 
 function preload() {
@@ -19,19 +30,61 @@ function preload() {
 }
 
 function create() {
-    this.add.image(200, 300, 'background'); 
-    player = this.physics.add.sprite(200, 550, 'player').setCollideWorldBounds(true);
-    
-    bricks = this.physics.add.group({ key: 'brick', repeat: 4, setXY: { x: 100, y: 50, stepX: 80 } });
-    bricks.children.iterate(brick => brick.setVelocityY(100));
-    
-    this.physics.add.collider(player, bricks);
-    cursors = this.input.keyboard.createCursorKeys();
+    // Fondo ajustado al tamaño de la cuadrícula
+    let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
+    bg.displayWidth = GAME_WIDTH;
+    bg.displayHeight = GAME_HEIGHT;
+
+    // Grupo de ladrillos
+    bricks = this.physics.add.group();
+
+    // Jugador centrado en la cuadrícula
+    player = this.physics.add.sprite(5 * TILE_SIZE, 9 * TILE_SIZE, 'player');
+    player.setScale(TILE_SIZE / player.width); // Ajusta su tamaño a una casilla
+
+    // Configurar teclas
+    this.input.keyboard.on('keydown-LEFT', () => {
+        if (player.x > 0) player.x -= TILE_SIZE;
+    });
+
+    this.input.keyboard.on('keydown-RIGHT', () => {
+        if (player.x < (GRID_SIZE - 1) * TILE_SIZE) player.x += TILE_SIZE;
+    });
+
+    this.input.keyboard.on('keydown-UP', () => {
+        if (player.y > 0) player.y -= TILE_SIZE;
+    });
+
+    this.input.keyboard.on('keydown-DOWN', () => {
+        if (player.y < (GRID_SIZE - 1) * TILE_SIZE) player.y += TILE_SIZE;
+    });
+
+    // Generar ladrillos cada segundo
+    this.time.addEvent({
+        delay: 1000,
+        callback: spawnBrick,
+        callbackScope: this,
+        loop: true
+    });
+
+    // Colisiones
+    this.physics.add.collider(player, bricks, gameOver, null, this);
+}
+
+function spawnBrick() {
+    let col = Phaser.Math.Between(0, GRID_SIZE - 1); // Columna aleatoria
+    let brick = bricks.create(col * TILE_SIZE, 0, 'brick'); // Cae desde arriba
+    brick.setScale(TILE_SIZE / brick.width); // Ajustar tamaño a 1 casilla
+    brick.setVelocityY(100); // Velocidad de caída
+}
+
+function gameOver() {
+    alert("¡Perdiste! Un ladrillo te golpeó.");
+    location.reload(); // Reiniciar el juego
 }
 
 function update() {
-    player.setVelocityX(0);
-    if (cursors.left.isDown) player.setVelocityX(-160);
-    else if (cursors.right.isDown) player.setVelocityX(160);
-    if (cursors.up.isDown && player.body.touching.down) player.setVelocityY(-300);
+    // Evita que el jugador salga de los límites
+    player.x = Phaser.Math.Clamp(player.x, 0, (GRID_SIZE - 1) * TILE_SIZE);
+    player.y = Phaser.Math.Clamp(player.y, 0, (GRID_SIZE - 1) * TILE_SIZE);
 }
